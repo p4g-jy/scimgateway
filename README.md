@@ -1260,6 +1260,90 @@ Match User Account = By Attribute = User Name
 Note, groups should be capability attribute (updated when account is synchronized with template):  
 advanced options - **Synchronized** = enabled (toggled on)
 
+## Okta SCIM 2.0 Entitlements Support
+
+SCIM Gateway now supports Okta SCIM 2.0 Entitlements, allowing you to manage user entitlements through SCIM operations. This feature enables:
+
+- **GET /scim/v2/ResourceTypes** - Returns ResourceType definitions for Entitlement and User resources
+- **GET /scim/v2/Entitlements** - Lists available entitlements with filtering and paging support
+- **GET /scim/v2/Users** - Includes entitlements array in user resources
+- **PATCH /scim/v2/Users/{id}** - Supports adding/removing entitlements via PatchOp operations
+
+### Entitlements Schema
+
+The entitlements are defined as multi-valued complex attributes with the following sub-attributes:
+- `value` (string, required) - The unique identifier of the entitlement
+- `display` (string) - Human-readable name for the entitlement
+- `type` (string) - Type of the entitlement (e.g., "License", "Permission")
+
+### Implementation
+
+To use entitlements in your plugin, implement the following methods:
+
+```typescript
+// Get entitlements with filtering and paging
+async getEntitlements(baseEntity: string, getObj: Record<string, any>, attributes: string[], ctx?: Record<string, any>) {
+  // Return entitlements based on filter criteria
+  return {
+    Resources: [/* entitlement objects */],
+    totalResults: number
+  }
+}
+
+// Modify entitlement
+async modifyEntitlement(baseEntity: string, id: string, scimdata: Record<string, any>, ctx?: Record<string, any>) {
+  // Update entitlement and return modified object
+  return entitlementObject
+}
+```
+
+### Example Usage
+
+```bash
+# Get all entitlements
+curl -sS "$BASE_URL/scim/v2/Entitlements" | jq '.'
+
+# Get users with entitlements
+curl -sS "$BASE_URL/scim/v2/Users?filter=userName%20eq%20\"user@example.com\"" | jq '.'
+
+# Add entitlement to user
+curl -sS -X PATCH "$BASE_URL/scim/v2/Users/user1" \
+  -H "Content-Type: application/scim+json" \
+  -d '{
+    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+    "Operations": [
+      {
+        "op": "add",
+        "path": "entitlements",
+        "value": [
+          {
+            "value": "entitlement-123",
+            "display": "Pro License",
+            "type": "License"
+          }
+        ]
+      }
+    ]
+  }'
+
+# Remove entitlement from user
+curl -sS -X PATCH "$BASE_URL/scim/v2/Users/user1" \
+  -H "Content-Type: application/scim+json" \
+  -d '{
+    "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+    "Operations": [
+      {
+        "op": "remove",
+        "path": "entitlements[value eq \"entitlement-123\"]"
+      }
+    ]
+  }'
+```
+
+For more information, see:
+- [Okta SCIM with Entitlements Guide](https://developer.okta.com/docs/guides/scim-with-entitlements/main/)
+- [RFC 7643 (SCIM Core)](https://datatracker.ietf.org/doc/html/rfc7643)
+
 ## Methods 
 
 Plugins should have following initialization:  

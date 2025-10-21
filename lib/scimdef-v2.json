@@ -51,8 +51,8 @@
 },
 
 "ResourceType": {
-  "totalResults": 2,
-  "itemsPerPage": 2,
+  "totalResults": 3,
+  "itemsPerPage": 3,
   "startIndex": 1,
   "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
   "Resources": [{
@@ -84,6 +84,19 @@
       "resourceType": "Schema",
       "location":
         "/Schemas/urn:ietf:params:scim:schemas:core:2.0:Group"
+    }
+  },
+  {
+    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:ResourceType"],
+    "id": "urn:okta:scim:schemas:core:1.0:Entitlement",
+    "name": "Entitlement",
+    "endpoint": "/Entitlements",
+    "description": "Entitlement",
+    "schema": "urn:okta:scim:schemas:core:1.0:Entitlement",
+    "meta": {
+      "resourceType": "ResourceType",
+      "location":
+        "/Schemas/urn:okta:scim:schemas:core:1.0:Entitlement"
     }
   }]
 },
@@ -1703,6 +1716,57 @@
                 ]
               }
             ]
+          }
+        ]
+      },
+      {
+        "id": "urn:okta:scim:schemas:core:1.0:Entitlement",
+        "name": "Entitlement",
+        "description": "Entitlement",
+        "attributes": [
+          {
+            "name": "id",
+            "type": "string",
+            "multiValued": false,
+            "description": "Unique identifier for the Entitlement",
+            "required": true,
+            "caseExact": false,
+            "mutability": "readOnly",
+            "returned": "default",
+            "uniqueness": "server"
+          },
+          {
+            "name": "displayName",
+            "type": "string",
+            "multiValued": false,
+            "description": "Human readable name for the Entitlement",
+            "required": true,
+            "caseExact": false,
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "none"
+          },
+          {
+            "name": "type",
+            "type": "string",
+            "multiValued": false,
+            "description": "Type of the Entitlement",
+            "required": false,
+            "caseExact": false,
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "none"
+          },
+          {
+            "name": "description",
+            "type": "string",
+            "multiValued": false,
+            "description": "Description of the Entitlement",
+            "required": false,
+            "caseExact": false,
+            "mutability": "readWrite",
+            "returned": "default",
+            "uniqueness": "none"
           }
         ]
       }

@@ -317,6 +317,56 @@ export class ScimGateway {
   */
   publicApi!: (baseEntity: string, method: string, id: string | undefined, query: Record<string, any> | undefined, apiObj: any, ctx?: undefined | Record<string, any>) => any
 
+  /**
+   * getEntitlements method is defined at the plugin and should return entitlements from endpoint according to getObj (rawFilter) and attributes parameter - if getObj.operator and getObj.rawFilter not defined, all entitlements should be returned  
+   * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Entitlements gives baseEntity=loki2
+   * @param getObj
+   * ```
+   * {
+   *   "attribute": "<>",
+   *   "operator": "<>",
+   *   "value": "<>",
+   *   "rawFilter": "<>",
+   *   "startIndex": <undefined | number>,
+   *   "count": <undefined | number>
+   * }
+   * ```
+   * **attribute**, **operator** and **value** are included when using "simpel filtering", e.g.: `{ "attribute": "displayName", "operator": "eq", "value": "Pro License" }`  
+   * **rawFilter** is original query filter e.g., `{ "rawFilter": "displayName eq \"Pro License\"" }`  
+   * **startIndex** paging, is the beginning index and count for the resources on the page  
+   * **count** paging, is the desired maximum number of query results per page  
+   * @param attributes array of attributes to be returned - if empty, all supported attributes should be returned. All attributes may also be returned regardless of attributes parameter, scimgateway will do final filtering
+   * @param ctx if plugin authPassThroughAllowed is set to true, ctx contains authorization header `{ "headers": { "authorization": "<value>" } }` that can be used in the communication with endpoint, something that is included when using HelperRest
+   * @returns
+   * ```
+   * {  
+   *   Resources: [<list of entitlement objects>],  
+   *   totalResults: <null | number> // number is total number of endpoint objects when using paging (startIndex/count) - if unknown, we might set a high number to ensure getting new paging request (scimgateway have logic for final page) 
+   * }
+   * ```
+   * could return all supported attributes having **id** and **displayName** as mandatory, scimgateway will do final filtering e.g.:  
+   * ```
+   * {  
+   *   Resources: [
+   *     {"id": "entitlement-123", "displayName": "Pro License", "type": "License"},
+   *     {"id":"entitlement-456","displayName":"Basic License","type":"License"}
+   *   ]
+   * }
+   * ```
+   *  @remarks the value of returned 'id' will be used as 'id' in other entitlement operations
+   */
+  getEntitlements!: (baseEntity: string, getObj: Record<string, any>, attributes: string[], ctx?: undefined | Record<string, any>) => any
+
+  /**
+   * modifyEntitlement method is defined at the plugin and should modify entitlement according to scimdata
+   * @param baseEntity used for multi tenant or multi endpoint support, either "undefined" or set by request url e.g., http://localhost:8880/loki2/Entitlements gives baseEntity=loki2
+   * @param id entitlement id
+   * @param scimdata entitlement data to be modified
+   * @param ctx if plugin authPassThroughAllowed is set to true, ctx contains authorization header `{ "headers": { "authorization": "<value>" } }` that can be used in the communication with endpoint, something that is included when using HelperRest
+   * @returns entitlement object or null/undefined if not found
+   */
+  modifyEntitlement!: (baseEntity: string, id: string, scimdata: Record<string, any>, ctx?: undefined | Record<string, any>) => any
+
   constructor() {
     const funcHandler: any = {}
     let requester: string = ''
@@ -486,8 +536,13 @@ export class ScimGateway {
       description: 'AppRoles',
       getMethod: 'getAppRoles',
     }
+    handler.Entitlements = handler.entitlements = {
+      description: 'Entitlement',
+      getMethod: 'getEntitlements',
+      modifyMethod: 'modifyEntitlement',
+    }
     /** handlers supported url paths */
-    const handlers = ['users', 'groups', 'bulk', 'serviceplans', 'approles', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'oauth', '.well-known', 'logger']
+    const handlers = ['users', 'groups', 'bulk', 'serviceplans', 'approles', 'entitlements', 'api', 'schemas', 'resourcetypes', 'serviceproviderconfig', 'serviceproviderconfigs', 'oauth', '.well-known', 'logger']
 
     try {
       if (!fs.existsSync(configDir + '/wsdls')) fs.mkdirSync(configDir + '/wsdls')
@@ -1767,6 +1822,16 @@ export class ScimGateway {
           delete scimdata.groups
         }
       }
+      const entitlements: any = []
+      if (scimdata.entitlements && Array.isArray(scimdata.entitlements) && handle.modifyMethod === 'modifyUser') {
+        for (let i = 0; i < scimdata.entitlements.length; i++) {
+          if (!scimdata.entitlements[i].value) continue
+          const obj: any = utils.copyObj(scimdata.entitlements[i])
+          obj.value = decodeURIComponent(obj.value)
+          entitlements.push(obj)
+        }
+        delete scimdata.entitlements
+      }
       try {
         let res: any
         if (Array.isArray(scimdata.members) && scimdata.members.length === 0 && handle.modifyMethod === 'modifyGroup') {
@@ -1787,6 +1852,23 @@ export class ScimGateway {
           const errRes = res.filter(result => result.status === 'rejected').map(result => result.reason.message)
           if (errRes.length > 0) {
             const errMsg = `modify user group membership error: ${errRes.join(', ')}`
+            throw new Error(errMsg)
+          }
+        }
+
+        if (entitlements.length > 0 && handle.modifyMethod === 'modifyUser') { // modify user includes entitlements, add/remove entitlements
+          const updateEntitlement = async (entitlementObj: Record<string, any>) => {
+            const entitlementId = entitlementObj.value
+            const entitlementData: any = { value: entitlementId }
+            if (entitlementObj.operation) entitlementData.operation = entitlementObj.operation
+            if (entitlementObj.display) entitlementData.display = entitlementObj.display
+            if (entitlementObj.type) entitlementData.type = entitlementObj.type
+            return await (this as any)[handler.entitlements.modifyMethod](baseEntity, entitlementId, { entitlements: [entitlementData] }, ctx.passThrough)
+          }
+          const res = await Promise.allSettled(entitlements.map((entitlementObj: Record<string, any>) => updateEntitlement(entitlementObj)))
+          const errRes = res.filter(result => result.status === 'rejected').map(result => result.reason.message)
+          if (errRes.length > 0) {
+            const errMsg = `modify user entitlements error: ${errRes.join(', ')}`
             throw new Error(errMsg)
           }
         }
@@ -3098,6 +3180,7 @@ export class ScimGateway {
           case 'GET users':
           case 'GET groups':
           case 'GET serviceplans':
+          case 'GET entitlements':
             if (ctx.routeObj.id) await getHandlerId(ctx)
             else await getHandler(ctx)
             return await onAfterHandle(ctx)
@@ -3129,6 +3212,7 @@ export class ScimGateway {
             } else return await getHandlerLoggerSSE(ctx)
           case 'PATCH users':
           case 'PATCH groups':
+          case 'PATCH entitlements':
             await patchHandler(ctx)
             return await onAfterHandle(ctx)
           case 'PATCH api':
