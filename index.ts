@@ -21,5 +21,6 @@
 // import './lib/plugin-saphana.ts'
 // import './lib/plugin-soap.ts'
 
-import './lib/plugin-loki.ts'
+import './lib/plugin-entitlements.ts'
+import './lib/plugin-loki-entitlements.ts'
 export {}

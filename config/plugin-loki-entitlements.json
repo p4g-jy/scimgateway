@@ -1,0 +1,41 @@
+{
+  "scimgateway": {
+    "port": 8881,
+    "localhostonly": false,
+    "idleTimeout": 120,
+    "scim": {
+      "version": "2.0",
+      "skipTypeConvert": false,
+      "skipMetaLocation": false,
+      "groupMemberOfUser": false,
+      "usePutSoftSync": false
+    },
+    "log": {
+      "loglevel": {
+        "file": "debug",
+        "console": "info",
+        "push": "info"
+      },
+      "colorize": true,
+      "maxSize": 20,
+      "maxFiles": 5,
+      "customMasking": []
+    },
+    "auth": {
+      "basic": [
+        {
+          "username": "gwadmin",
+          "password": "password",
+          "readOnly": false,
+          "baseEntities": []
+        }
+      ]
+    }
+  },
+  "entity": {
+    "undefined": {
+      "dbname": "loki-entitlements.db",
+      "persistence": false
+    }
+  }
+}

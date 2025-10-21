@@ -58,6 +58,7 @@ The following fully functional plugins are included for demonstration and produc
 | Plugin | Endpoint Type | Description |
 | :--- | :--- | :--- |
 | **Loki** | NoSQL Database | Transforms the SCIM Gateway into a standalone SCIM endpoint utilizing the internal [LokiJS](https://github.com/techfort/LokiJS) database. Includes two test users and groups |
+| **Loki Entitlements** | NoSQL Database | Extended Loki plugin with full Okta SCIM 2.0 Entitlements support. Includes test users, groups, and entitlements with complete CRUD operations |
 | **MongoDB** | NoSQL Database | Similar to the Loki plugin, but using an externally managed MongoDB database, showcasing multi-tenant and multi-endpoint capabilities via `baseEntity` |
 | **Entra ID** | REST Webservices | Entra ID user provisioning via Microsoft Graph API |
 | **SCIM** | REST Webservice | Using plugin Loki as a SCIM provisioning endpoint. May become a SCIM version-gateway (e.g., 1.1 => 2.0) |
@@ -1343,6 +1344,78 @@ curl -sS -X PATCH "$BASE_URL/scim/v2/Users/user1" \
 For more information, see:
 - [Okta SCIM with Entitlements Guide](https://developer.okta.com/docs/guides/scim-with-entitlements/main/)
 - [RFC 7643 (SCIM Core)](https://datatracker.ietf.org/doc/html/rfc7643)
+
+### Loki Entitlements Plugin
+
+The `plugin-loki-entitlements.ts` extends the standard Loki plugin with full Okta SCIM 2.0 Entitlements support. This plugin provides a complete standalone SCIM endpoint with entitlements management capabilities.
+
+#### Features
+
+- **Full SCIM 2.0 Compliance**: Complete support for SCIM 2.0 protocol
+- **Entitlements Management**: Full CRUD operations for entitlements
+- **User Entitlements**: Support for user-entitlement associations
+- **Test Data**: Pre-loaded test users, groups, and entitlements
+- **LokiJS Database**: Fast, in-memory document database with optional persistence
+
+#### Configuration
+
+The plugin uses `config/plugin-loki-entitlements.json` with the following key settings:
+
+```json
+{
+  "scimgateway": {
+    "port": 8881,
+    "scim": {
+      "version": "2.0"
+    }
+  },
+  "entity": {
+    "undefined": {
+      "dbname": "loki-entitlements.db",
+      "persistence": false
+    }
+  }
+}
+```
+
+#### Test Data
+
+The plugin includes pre-loaded test data:
+
+**Users:**
+- `bjensen` - Test user with Pro License and Admin Access entitlements
+- `jsmith` - Test user with Basic License entitlement
+
+**Entitlements:**
+- `entitlement-123` - Pro License (License type)
+- `entitlement-456` - Basic License (License type)
+- `entitlement-789` - Admin Access (Permission type)
+- `entitlement-abc` - Premium Support (Support type)
+
+#### Testing
+
+Use the provided test script to verify functionality:
+
+```bash
+./test-loki-entitlements.sh
+```
+
+This script tests:
+- ResourceType discovery
+- Entitlements listing and filtering
+- User entitlements retrieval
+- PATCH operations for adding/removing entitlements
+- Entitlement modification
+
+#### API Endpoints
+
+The plugin exposes the following SCIM 2.0 endpoints:
+
+- `GET /scim/v2/ResourceTypes` - Resource type discovery
+- `GET /scim/v2/Entitlements` - List entitlements with filtering
+- `GET /scim/v2/Users` - List users with entitlements
+- `PATCH /scim/v2/Users/{id}` - Modify user entitlements
+- `PATCH /scim/v2/Entitlements/{id}` - Modify entitlements
 
 ## Methods 
 
