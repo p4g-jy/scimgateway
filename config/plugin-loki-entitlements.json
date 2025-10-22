@@ -13,7 +13,7 @@
     "log": {
       "loglevel": {
         "file": "debug",
-        "console": "info",
+        "console": "debug",
         "push": "info"
       },
       "colorize": true,
@@ -25,17 +25,19 @@
       "basic": [
         {
           "username": "gwadmin",
-          "password": "password",
+          "password": "YjBlMjUyMmEwMmJlZTE1ZGIwN2EwNzNkZDlhY2U5ZmQ6MGExZDYzY2QwOTc3NmNmYzUwNDZiYzg4ZGNiNDRmYTI=",
           "readOnly": false,
           "baseEntities": []
         }
       ]
     }
   },
-  "entity": {
-    "undefined": {
-      "dbname": "loki-entitlements.db",
-      "persistence": false
+  "endpoint": {
+    "entity": {
+      "undefined": {
+        "dbname": "loki.db",
+        "persistence": false
+      }
     }
   }
 }
