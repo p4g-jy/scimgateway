@@ -30,6 +30,31 @@
           "baseEntities": []
         }
       ]
+    },
+    "certificate": {
+      "key": null,
+      "cert": null,
+      "ca": null,
+      "pfx": {
+        "bundle": null,
+        "password": null
+      }
+    },
+    "ipAllowList": [],
+    "email": {
+      "auth": {
+        "type": "oauth",
+        "options": {
+          "azureTenantId": null,
+          "clientId": null,
+          "clientSecret": null
+        }
+      },
+      "emailOnError": {
+        "enabled": false,
+        "from": null,
+        "to": null
+      }
     }
   },
   "endpoint": {
